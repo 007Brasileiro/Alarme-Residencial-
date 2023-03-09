@@ -1,0 +1,50 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+
+const char* ssid = "nome_da_rede_wifi";
+const char* password = "senha_da_rede_wifi";
+
+const char* serverName = "http://exemplo.com/alarme.php"; // URL do servidor para enviar alertas
+const int pirSensor = D1; // pino do sensor PIR
+const int ledPin = D2; // pino do LED para indicar o estado do alarme
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(pirSensor, INPUT);
+  pinMode(ledPin, OUTPUT);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Conectando na rede WiFi...");
+  }
+
+  Serial.println("Conexão WiFi estabelecida");
+}
+
+void loop() {
+  int pirState = digitalRead(pirSensor);
+
+  if (pirState == HIGH) { // movimento detectado
+    digitalWrite(ledPin, HIGH); // acende o LED
+    sendAlert(); // envia alerta para o servidor
+    delay(5000); // aguarda 5 segundos antes de desligar o alarme
+    digitalWrite(ledPin, LOW); // apaga o LED
+  }
+
+  delay(500); // aguarda 500ms antes de ler novamente o sensor
+}
+
+void sendAlert() {
+  WiFiClient client;
+
+  if (client.connect(serverName, 80)) { // conecta ao servidor
+    Serial.println("Enviando alerta...");
+    client.println("GET /alarme.php?alerta=1 HTTP/1.1");
+    client.println("Host: exemplo.com");
+    client.println("Connection: close");
+    client.println();
+    delay(500); // aguarda resposta do servidor
+  }
+}
